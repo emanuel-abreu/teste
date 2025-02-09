@@ -82,6 +82,12 @@ class Gerenciador:
 
         elif mensagem["tipo"] == "consulta":
             sensor_tipo = mensagem["sensor_tipo"]
+
+            # Se for a consulta de temperatura, retorna apenas o limite da temperatura
+            if sensor_tipo == "temperatura":
+                valor = self.temperatura_limite
+                return {"status": "ok", "mensagem": f"Temperatura limite: {valor}°C"}
+
             valor = self.sensores.get(sensor_tipo, "Sem leitura disponível")
             return {"status": "ok", "mensagem": f"{sensor_tipo}: {valor}"}
 

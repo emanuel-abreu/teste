@@ -15,10 +15,11 @@ class SensorCliente:
         self.sensor_tipo = sensor_tipo
         self.leituras = {}  # Armazena leituras, incluindo temperatura limite
         self.config = self.carregar_configuracao()  # Carrega as configurações
-        self.temperatura_atual = random.randint(self.config['sensores']['temperatura']['limite_inferior'],
-                                                self.config['sensores']['temperatura']['limite_superior'])  # Temperatura inicial aleatória
-        self.temperatura_limite = self.config['sensores'].get(
-            "temperatura_limite")
+        # A temperatura inicial vem do config
+        self.temperatura_atual = self.config['sensores']['temperatura_atual']
+        # Limite da temperatura
+        self.temperatura_limite = self.config['temperatura_limite']
+        self.estado_refrigerador = "desligado"  # Estado inicial do refrigerador
 
     def carregar_configuracao(self):
         """Carrega a configuração do arquivo JSON."""
@@ -36,18 +37,21 @@ class SensorCliente:
             if self.temperatura_atual > self.temperatura_limite:
                 # Simula resfriamento gradual
                 self.temperatura_atual -= random.uniform(0.5, 1.5)
+                self.estado_refrigerador = "ligado"  # Liga o refrigerador
             elif self.temperatura_atual < self.temperatura_limite:
                 # Simula aquecimento
                 self.temperatura_atual += random.uniform(0.5, 1.5)
+                self.estado_refrigerador = "desligado"  # Desliga o refrigerador
+
             return round(self.temperatura_atual, 1)
 
         elif self.sensor_tipo == "estoque":
-            # Simula nível de estoque
-            return random.randint(self.config['sensores']['estoque']['minimo'], self.config['sensores']['estoque']['maximo'])
+            # Retorna o valor do estoque diretamente
+            return self.config['sensores']['estoque']
 
         elif self.sensor_tipo == "porta":
-            # Simula status da porta
-            return random.choice(self.config['sensores']['porta']['opcoes'])
+            # Retorna o status da porta
+            return self.config['sensores']['porta']
 
     def enviar_leitura(self):
         """Envia a leitura para o servidor."""
@@ -56,7 +60,9 @@ class SensorCliente:
             "header": HEADER,
             "tipo": "sensor",
             "sensor_tipo": self.sensor_tipo,
-            "valor": leitura
+            "valor": leitura,
+            "estado_refrigerador": self.estado_refrigerador,  # Inclui o estado do refrigerador
+            "temperatura_atual": self.temperatura_atual,  # Inclui a temperatura atual
         }
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -68,4 +74,4 @@ class SensorCliente:
     def rodar(self):
         while True:
             self.enviar_leitura()
-            time.sleep(5)  # Aguarda 5 segundos antes da próxima leitura.
+            time.sleep(5)  # Aguarda 5 segundos antes da próxima leitura
