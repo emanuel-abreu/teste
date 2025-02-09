@@ -1,0 +1,22 @@
+import json
+from protocolo import HEADER
+
+
+class Atuador:
+    def __init__(self, atuador_id, tipo):
+        self.atuador_id = atuador_id
+        self.tipo = tipo
+        self.estado = "desligado"
+
+    def alterar_estado(self, novo_estado):
+        self.estado = novo_estado
+        print(f"{self.tipo} foi {novo_estado}")
+
+    def criar_mensagem(self):
+        return json.dumps({
+            "header": HEADER,
+            "tipo": "atuador",
+            "atuador_id": self.atuador_id,
+            "tipo_atuador": self.tipo,
+            "estado": self.estado
+        })
