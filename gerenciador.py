@@ -27,6 +27,7 @@ class Gerenciador:
         }
 
         self.tempo_porta_aberta = None
+        self.temporizador_alarme = None
 
     def carregar_configuracao(self):
         """Carrega a configuração (incluindo sensores) do arquivo JSON"""
@@ -59,7 +60,6 @@ class Gerenciador:
                         resposta = self.processar_mensagem(mensagem)
                         conn.sendall(json.dumps(resposta).encode())
 
-                self.verificar_porta_aberta()
                 self.controlar_atuadores()
                 time.sleep(1)
 
@@ -74,7 +74,6 @@ class Gerenciador:
             if sensor_tipo in self.sensores:
                 self.sensores[sensor_tipo] = valor
                 print(f"Leitura recebida: {sensor_tipo} = {valor}")
-
                 self.controlar_atuadores()
                 return {"status": "ok", "mensagem": f"{sensor_tipo} = {valor}"}
             else:
@@ -83,7 +82,6 @@ class Gerenciador:
         elif mensagem["tipo"] == "consulta":
             sensor_tipo = mensagem["sensor_tipo"]
 
-            # Se for a consulta de temperatura, retorna apenas o limite da temperatura
             if sensor_tipo == "temperatura":
                 valor = self.temperatura_limite
                 return {"status": "ok", "mensagem": f"Temperatura limite: {valor}°C"}
@@ -94,7 +92,7 @@ class Gerenciador:
         elif mensagem["tipo"] == "configuracao":
             if mensagem["parametro"] == "temperatura_limite":
                 self.temperatura_limite = mensagem["valor"]
-                self.salvar_configuracao()  # Salvar no arquivo para persistência
+                self.salvar_configuracao()
                 return {"status": "ok", "mensagem": f"Temperatura limite ajustada para {mensagem['valor']}°C"}
 
         return {"status": "erro", "mensagem": "Comando desconhecido"}
@@ -107,21 +105,32 @@ class Gerenciador:
         else:
             self.atuadores["refrigerador"].alterar_estado("desligado")
 
-        if self.sensores.get("porta", "fechada") == "aberta":
-            self.tempo_porta_aberta = time.time()
+        if self.sensores.get("porta", "fechado") == "aberta":
+            if self.tempo_porta_aberta is None:
+                self.tempo_porta_aberta = time.time()
+                self.iniciar_temporizador_alarme()
             self.atuadores["luz_interna"].alterar_estado("ligado")
         else:
             self.tempo_porta_aberta = None
+            self.cancelar_temporizador_alarme()
             self.atuadores["luz_interna"].alterar_estado("desligado")
 
-    def verificar_porta_aberta(self):
-        if self.tempo_porta_aberta and (time.time() - self.tempo_porta_aberta) > 30:
-            # Porta aberta por mais de 30 segundos, ativa o alarme
+    def iniciar_temporizador_alarme(self):
+        if self.temporizador_alarme:
+            self.temporizador_alarme.cancel()
+        self.temporizador_alarme = threading.Timer(30, self.ativar_alarme)
+        self.temporizador_alarme.start()
+
+    def cancelar_temporizador_alarme(self):
+        if self.temporizador_alarme:
+            self.temporizador_alarme.cancel()
+            self.temporizador_alarme = None
+        self.atuadores["alarme"].alterar_estado("desligado")
+
+    def ativar_alarme(self):
+        if self.sensores.get("porta", "fechado") == "aberta":
             self.atuadores["alarme"].alterar_estado("ligado")
             print("Alerta: Porta aberta por mais de 30 segundos!")
-        else:
-            # Caso contrário, desativa o alarme
-            self.atuadores["alarme"].alterar_estado("desligado")
 
 
 if __name__ == "__main__":

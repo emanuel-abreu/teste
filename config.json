@@ -1,5 +1,5 @@
 {
-  "temperatura_limite": 3,
+  "temperatura_limite": 6,
   "sensores": {
     "temperatura": { "limite_inferior": 15, "limite_superior": 25 },
     "temperatura_atual": 18,
