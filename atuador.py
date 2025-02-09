@@ -9,6 +9,9 @@ class Atuador:
         self.estado = "desligado"
 
     def alterar_estado(self, novo_estado):
+        if novo_estado not in ["ligado", "desligado"]:
+            print(f"Estado inválido: {novo_estado}. O atuador pode ser 'ligado' ou 'desligado'.")
+            return
         self.estado = novo_estado
         print(f"{self.tipo} foi {novo_estado}")
 

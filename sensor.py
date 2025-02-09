@@ -2,7 +2,10 @@ import socket
 import json
 import random
 import time
+import os
 from protocolo import HEADER
+
+CONFIG_FILE = "config.json"
 
 
 class SensorCliente:
@@ -11,60 +14,49 @@ class SensorCliente:
         self.porta = porta
         self.sensor_tipo = sensor_tipo
         self.leituras = {}  # Armazena leituras, incluindo temperatura limite
-        self.temperatura_atual = 10  # Inicializa temperatura com um valor aleatório
+        self.config = self.carregar_configuracao()  # Carrega as configurações
+        self.temperatura_atual = random.randint(self.config['sensores']['temperatura']['limite_inferior'],
+                                                self.config['sensores']['temperatura']['limite_superior'])  # Temperatura inicial aleatória
+        self.temperatura_limite = self.config['sensores'].get(
+            "temperatura_limite")
+
+    def carregar_configuracao(self):
+        """Carrega a configuração do arquivo JSON."""
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r") as f:
+                try:
+                    return json.load(f)
+                except json.JSONDecodeError:
+                    print("Erro ao carregar config.json.")
+        return {}
 
     def gerar_leitura(self):
+        """Gera leitura baseada no tipo de sensor."""
         if self.sensor_tipo == "temperatura":
-            limite = self.leituras.get("temperatura_limite", self.temperatura_atual)  # Se não houver limite, mantém a temperatura atual
-            if self.temperatura_atual > limite:
-                self.temperatura_atual -= 1  # Simula resfriamento gradual
-            return self.temperatura_atual
+            if self.temperatura_atual > self.temperatura_limite:
+                # Simula resfriamento gradual
+                self.temperatura_atual -= random.uniform(0.5, 1.5)
+            elif self.temperatura_atual < self.temperatura_limite:
+                # Simula aquecimento
+                self.temperatura_atual += random.uniform(0.5, 1.5)
+            return round(self.temperatura_atual, 1)
+
         elif self.sensor_tipo == "estoque":
-            return random.randint(10, 100)
+            # Simula nível de estoque
+            return random.randint(self.config['sensores']['estoque']['minimo'], self.config['sensores']['estoque']['maximo'])
+
         elif self.sensor_tipo == "porta":
-            return "aberta"
-
-    def consultar_temperatura_limite(self):
-        """Consulta a temperatura limite armazenada no servidor"""
-        mensagem = {
-            "header": HEADER,
-            "tipo": "consulta",
-            "sensor_tipo": "temperatura_limite"
-        }
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self.host, self.porta))
-            s.sendall(json.dumps(mensagem).encode())
-
-            resposta_bruta = s.recv(1024).decode()
-            if not resposta_bruta:
-                print("Erro: Servidor não enviou resposta.")
-                return  # Evita tentar processar JSON vazio
-
-            try:
-                resposta = json.loads(resposta_bruta)
-            except json.JSONDecodeError:
-                print(f"Erro: Resposta inválida do servidor: {resposta_bruta}")
-                return  # Evita exceções ao tentar acessar chaves inválidas
-
-            if resposta.get("status") == "ok":
-                try:
-                    self.leituras["temperatura_limite"] = float(resposta["mensagem"])
-                    print(f"Temperatura limite recebida: {self.leituras['temperatura_limite']}°C")
-                except ValueError:
-                    print(f"Erro: Temperatura limite inválida recebida ({resposta['mensagem']}). Mantendo valor anterior.")
-                    self.leituras["temperatura_limite"] = self.temperatura_atual  # Evita erros na comparação
-
+            # Simula status da porta
+            return random.choice(self.config['sensores']['porta']['opcoes'])
 
     def enviar_leitura(self):
-        """Antes de enviar a leitura, consulta a temperatura limite"""
-        self.consultar_temperatura_limite()
-
+        """Envia a leitura para o servidor."""
+        leitura = self.gerar_leitura()
         mensagem = {
             "header": HEADER,
             "tipo": "sensor",
             "sensor_tipo": self.sensor_tipo,
-            "valor": self.gerar_leitura()
+            "valor": leitura
         }
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -74,13 +66,6 @@ class SensorCliente:
             print(f"Servidor respondeu: {resposta.decode()}")
 
     def rodar(self):
-        """Envia leituras periodicamente"""
         while True:
             self.enviar_leitura()
-            time.sleep(5)  # Envia a cada 5 segundos
-
-
-if __name__ == "__main__":
-    sensor_tipo = input("Escolha o tipo de sensor (temperatura, estoque, porta): ")
-    sensor = SensorCliente(sensor_tipo=sensor_tipo)
-    sensor.rodar()
+            time.sleep(5)  # Aguarda 5 segundos antes da próxima leitura.

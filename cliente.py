@@ -1,13 +1,14 @@
 import socket
 import json
+import random
 from protocolo import HEADER
 
 
 class Cliente:
-    def __init__(self, host="localhost", porta=5000, device_id=None):
+    def __init__(self, host="localhost", porta=8080):
         self.host = host
         self.porta = porta
-        self.device_id = device_id
+        self.device_id = random.randint(1000, 9999)  # Mockando um ID aleatório
 
     def enviar_mensagem(self, mensagem):
         """Envia a mensagem ao servidor e aguarda a resposta."""
@@ -51,8 +52,7 @@ class Cliente:
 
 
 if __name__ == "__main__":
-    device_id = input("Informe o ID do seu dispositivo: ")
-    cliente = Cliente(device_id=device_id)
+    cliente = Cliente()  # Agora o ID é gerado automaticamente
 
     while True:
         print("\n1 - Consultar leitura do sensor")
