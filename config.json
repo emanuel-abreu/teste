@@ -1,9 +1,1 @@
-{
-  "temperatura_limite": 6,
-  "sensores": {
-    "temperatura": { "limite_inferior": 15, "limite_superior": 25 },
-    "temperatura_atual": 18,
-    "estoque": 40,
-    "porta": "fechado"
-  }
-}
+{"temperatura_limite": 5, "sensores": {"temperatura": {"limite_inferior": 15, "limite_superior": 25}, "temperatura_atual": 18, "estoque": 40, "porta": "fechado"}}

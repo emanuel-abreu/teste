@@ -22,7 +22,7 @@ class Gerenciador:
 
         self.atuadores = {
             "refrigerador": Atuador(1, "refrigerador"),
-            "luz_interna": Atuador(2, "luz_interna"),
+            "luz": Atuador(2, "luz"),
             "alarme": Atuador(3, "alarme")
         }
 
@@ -86,6 +86,12 @@ class Gerenciador:
                 valor = self.temperatura_limite
                 return {"status": "ok", "mensagem": f"Temperatura limite: {valor}°C"}
 
+            # Verifica se o tipo é um atuador
+            if sensor_tipo in self.atuadores:
+                estado = self.atuadores[sensor_tipo].estado
+                return {"status": "ok", "mensagem": f"{sensor_tipo}: {estado}"}
+
+            # Caso contrário, assume que é um sensor
             valor = self.sensores.get(sensor_tipo, "Sem leitura disponível")
             return {"status": "ok", "mensagem": f"{sensor_tipo}: {valor}"}
 
@@ -109,11 +115,11 @@ class Gerenciador:
             if self.tempo_porta_aberta is None:
                 self.tempo_porta_aberta = time.time()
                 self.iniciar_temporizador_alarme()
-            self.atuadores["luz_interna"].alterar_estado("ligado")
+            self.atuadores["luz"].alterar_estado("ligado")
         else:
             self.tempo_porta_aberta = None
             self.cancelar_temporizador_alarme()
-            self.atuadores["luz_interna"].alterar_estado("desligado")
+            self.atuadores["luz"].alterar_estado("desligado")
 
     def iniciar_temporizador_alarme(self):
         if self.temporizador_alarme:
