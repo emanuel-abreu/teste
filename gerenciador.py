@@ -60,9 +60,6 @@ class Gerenciador:
                         resposta = self.processar_mensagem(mensagem)
                         conn.sendall(json.dumps(resposta).encode())
 
-                self.controlar_atuadores()
-                time.sleep(1)
-
     def processar_mensagem(self, mensagem):
         if mensagem.get("header") != HEADER:
             return {"status": "erro", "mensagem": "Protocolo inválido"}
@@ -84,14 +81,16 @@ class Gerenciador:
 
             if sensor_tipo == "temperatura":
                 valor = self.temperatura_limite
-                return {"status": "ok", "mensagem": f"Temperatura limite: {valor}°C"}
+                return {"status": "ok", "mensagem": f"Temperatura limite: {valor} C"}
 
-            # Verifica se o tipo é um atuador
-            if sensor_tipo in self.atuadores:
+            elif sensor_tipo in self.atuadores:
                 estado = self.atuadores[sensor_tipo].estado
                 return {"status": "ok", "mensagem": f"{sensor_tipo}: {estado}"}
 
-            # Caso contrário, assume que é um sensor
+            elif sensor_tipo == "estoque":
+                valor = self.sensores.get("estoque", "Sem leitura disponível")
+                return {"status": "ok", "mensagem": f"Estoque atual: {valor}%"}
+
             valor = self.sensores.get(sensor_tipo, "Sem leitura disponível")
             return {"status": "ok", "mensagem": f"{sensor_tipo}: {valor}"}
 
@@ -99,7 +98,7 @@ class Gerenciador:
             if mensagem["parametro"] == "temperatura_limite":
                 self.temperatura_limite = mensagem["valor"]
                 self.salvar_configuracao()
-                return {"status": "ok", "mensagem": f"Temperatura limite ajustada para {mensagem['valor']}°C"}
+                return {"status": "ok", "mensagem": f"Temperatura limite ajustada para {mensagem['valor']} C"}
 
         return {"status": "erro", "mensagem": "Comando desconhecido"}
 
@@ -142,7 +141,6 @@ class Gerenciador:
 if __name__ == "__main__":
     gerenciador = Gerenciador()
 
-    # Iniciar sensores em threads separadas
     for sensor_tipo in gerenciador.sensores.keys():
         threading.Thread(target=SensorCliente(
             sensor_tipo=sensor_tipo).rodar, daemon=True).start()

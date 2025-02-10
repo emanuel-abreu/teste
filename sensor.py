@@ -18,6 +18,9 @@ class SensorCliente:
         self.config = self.carregar_configuracao()
         self.temperatura_atual = self.config['sensores']['temperatura_atual']
         self.temperatura_limite = self.config['temperatura_limite']
+        self.estoque_atual = self.config['sensores']['estoque']
+        self.capacidade_maxima = self.config['sensores'].get(
+            'capacidade_maxima', 100)  # capacidade máxima da geladeira
         self.estado_refrigerador = "desligado"
 
     def carregar_configuracao(self):
@@ -62,7 +65,9 @@ class SensorCliente:
                 self.estado_refrigerador = "desligado"
             return round(self.temperatura_atual, 1)
         elif self.sensor_tipo == "estoque":
-            return self.config['sensores']['estoque']
+            percentual_estoque = (self.estoque_atual /
+                                  self.capacidade_maxima) * 100
+            return round(percentual_estoque, 1)
         elif self.sensor_tipo == "porta":
             return self.config['sensores']['porta']
 
